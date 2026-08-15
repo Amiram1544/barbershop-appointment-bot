@@ -85,3 +85,74 @@ class Barber(Base):
         DateTime,
         default=utc_now_naive,
     )
+
+
+class WorkHour(Base):
+    """
+    One working range per weekday.
+
+    Example:
+    barber_id=1
+    weekday=0
+    start_minute=480   -> 08:00
+    end_minute=720     -> 12:00
+    """
+
+    __tablename__ = "work_hours"
+
+    __table_args__ = UniqueConstraint(
+        "barber_id",
+        "weekday",
+        name="uq_work_hours_barber_weekday",
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    barber_id: Mapped[int] = mapped_column(
+        ForeignKey("barbers.id", ondelete="CASCADE"), index=True
+    )
+    weekday: Mapped[int] = mapped_column(Integer)
+    start_minute: Mapped[int] = mapped_column(Integer)
+    end_minute: Mapped[int] = mapped_column(Integer)
+
+
+class Appointment(Base):
+    __tablename__ = "appointments"
+
+    __table_args__ = Index(
+        "ix_appointments_barber_time",
+        "barber_id",
+        "start_at",
+        "end_at",
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    barber_id: Mapped[int] = mapped_column(
+        ForeignKey("barbers.id", ondelete="CASCADE"), index=True
+    )
+    customer_telegram_id: Mapped[Optional[str]] = mapped_column(
+        nullable=True
+    )  # Some users might dont have username yet
+    customer_first_name: Mapped[str] = mapped_column(String(100))
+
+    customer_last_name: Mapped[str] = mapped_column(String(100))
+    phone: Mapped[str] = mapped_column(String(30))
+    start_at: Mapped[datetime] = mapped_column(DateTime)
+    end_at: Mapped[datetime] = mapped_column(DateTime)
+
+    status: Mapped[AppointmentStatus] = mapped_column(
+        SAEnum(AppointmentStatus, native_enum=False, length=20),
+        default=AppointmentStatus.PENDING,
+    )
+    pending_expires_in: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=utc_now_naive,
+    )
+
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        onupdate=utc_now_naive,
+        nullable=True,
+    )
